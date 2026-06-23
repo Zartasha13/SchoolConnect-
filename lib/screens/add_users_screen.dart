@@ -1,0 +1,292 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class AddUserScreen extends StatefulWidget {
+  const AddUserScreen({super.key});
+
+  @override
+  State<AddUserScreen> createState() => _AddUserScreenState();
+}
+
+class _AddUserScreenState extends State<AddUserScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController(); // Password Controller
+  final _rollNoController = TextEditingController();
+
+  String? _selectedClass;
+  String? _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    // Name change hone par auto-generate password logic
+    _nameController.addListener(_generatePassword);
+  }
+
+  void _generatePassword() {
+    // Sirf naam ka pehla hissa lein ya pura, yahan `replaceAll` se spaces khatam kar rahe hain
+    String name = _nameController.text.trim().toLowerCase().replaceAll(" ", "");
+    if (name.isNotEmpty) {
+      setState(() {
+        // Name + @ + 123 format
+        _passwordController.text = "$name@123";
+      });
+    } else {
+      setState(() {
+        _passwordController.text = "";
+      });
+    }
+  }
+
+  Future<bool> checkRollNoExists(String rollNo) async {
+    var snapshot = await FirebaseFirestore.instance
+        .collection('users') // Ya jahan aapne students ka data rakha hai
+        .where('role', isEqualTo: 'Student')
+        .where('rollNo', isEqualTo: rollNo)
+        .get();
+
+    return snapshot.docs
+        .isNotEmpty; // Agar docs khali nahi hain, to roll no exist karta hai
+  }
+
+  @override
+  void dispose() {
+    _nameController.removeListener(_generatePassword);
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _rollNoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(title: const Text("Create New User")),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(20), // Padding yahan aayegi
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("CREATE NEW USER PROFILE",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 20),
+
+                      // Name Field
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                            labelText: "Full Name",
+                            border: OutlineInputBorder()),
+                        validator: (v) => v!.isEmpty ? "Required" : null,
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Email Field
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                            labelText: "Email",
+                            border: OutlineInputBorder(),
+                            hintText: "example@gmail.com"),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Email is required";
+                          }
+                          final emailRegex =
+                              RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value)) {
+                            return "Please enter a valid email address";
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Auto Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                            labelText: "Generated Password",
+                            prefixIcon: Icon(Icons.lock_outline),
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Color(0xFFF0F0F0)),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Role Dropdown
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedRole,
+                        decoration: const InputDecoration(
+                          labelText: "Select Role",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: ["Student", "Teacher"]
+                            .map((r) =>
+                                DropdownMenuItem(value: r, child: Text(r)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedRole = v),
+                        validator: (v) =>
+                            v == null ? "Please select a role" : null,
+                      ),
+
+                      const SizedBox(height: 15),
+                      if (_selectedRole == "Student") ...[
+                        TextFormField(
+                          controller: _rollNoController,
+                          decoration: const InputDecoration(
+                            labelText: "Roll Number *",
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Roll Number is required";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 15),
+                      ],
+
+                      // Class Dropdown
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedClass,
+                        decoration: const InputDecoration(
+                          labelText: "Select Class",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: List.generate(10, (i) => (i + 1).toString())
+                            .map((c) => DropdownMenuItem(
+                                value: c, child: Text("Class $c")))
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedClass = v),
+                        validator: (v) => v == null || v.isEmpty
+                            ? "Please select a class"
+                            : null,
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Buttons Row
+                      Row(
+                        children: [
+                          Expanded(
+                              child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("Cancel"))),
+                          const SizedBox(width: 15),
+                          Expanded(
+                              child: FilledButton(
+                                  onPressed: () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      if (_selectedRole == "Student") {
+                                        bool exists = await checkRollNoExists(
+                                            _rollNoController.text.trim());
+                                        if (exists) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                "Error: This Roll Number already exists!"),
+                                            backgroundColor: Colors.red,
+                                          ));
+                                          return;
+                                        }
+                                      }
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (context) => const Center(
+                                            child: CircularProgressIndicator()),
+                                      );
+
+                                      try {
+                                        UserCredential userCredential =
+                                            await FirebaseAuth.instance
+                                                .createUserWithEmailAndPassword(
+                                          email: _emailController.text.trim(),
+                                          password:
+                                              _passwordController.text.trim(),
+                                        );
+
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(userCredential.user!.uid)
+                                            .set({
+                                          "uid": userCredential.user!.uid,
+                                          "name": _nameController.text.trim(),
+                                          "email": _emailController.text.trim(),
+                                          "role": _selectedRole,
+                                          "rollNo":
+                                              _rollNoController.text.trim(),
+                                          "class": _selectedClass ?? "N/A",
+                                          "isPasswordChanged": false,
+                                          "createdAt":
+                                              FieldValue.serverTimestamp(),
+                                        });
+
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      "User created successfully!")));
+                                        }
+                                      } on FirebaseAuthException catch (e) {
+                                        String errorMessage =
+                                            e.message ?? "Error occurred";
+                                        if (e.code == 'email-already-in-use') {
+                                          errorMessage =
+                                              "Yeh email pehle se istemal ho rahi hai.";
+                                        }
+
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(errorMessage),
+                                            backgroundColor: Colors.red,
+                                          ));
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text("Error: $e"),
+                                            backgroundColor: Colors.red,
+                                          ));
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: const Text("Create User"))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
