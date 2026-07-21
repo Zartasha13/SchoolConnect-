@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:school_connect/screens/admin_announcement_screen.dart';
+import 'package:school_connect/screens/bulk_challan_screen.dart';
+import 'package:school_connect/screens/fee_management_screen.dart';
+import 'package:school_connect/screens/generate_challan_screen.dart';
 import 'package:school_connect/screens/manage_users_screen.dart';
 import 'package:school_connect/screens/resolve_complainrs_screen.dart';
 import 'package:school_connect/screens/welcome_screen.dart';
@@ -16,122 +19,718 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // --- Logout Confirmation Dialog ---
+  static const _navy = Color(0xFF1E3A5F);
+  static const _bg = Color(0xFFF0F4F8);
+  static const _white = Colors.white;
+
+  // ── Cards ─────────────────────────────────────────────────────────────────
+  late final List<_CardData> _cards = [
+    _CardData(
+      icon: Icons.people_alt_outlined,
+      title: 'Manage Users',
+      description: 'Add, edit or remove teacher and student accounts.',
+      buttonText: 'View All Users',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ManageUsersScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.campaign_outlined,
+      title: 'Announcements',
+      description: 'Post school notices, updates and important news.',
+      buttonText: 'New Post',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminAnnouncementsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.assignment_late_outlined,
+      title: 'Complaints',
+      description: 'Review and resolve submissions from parents or staff.',
+      buttonText: 'View Complaints',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminComplaintsPage()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.receipt_long_outlined,
+      title: 'Generate Challan',
+      description: 'Create single or bulk fee challans for students.',
+      buttonText: 'Create Challan',
+      onPressed: () => _showChallanBottomSheet(),
+    ),
+    _CardData(
+      icon: Icons.upload_file_outlined,
+      title: 'Bulk Import',
+      description: 'Import student records and fee data from Excel.',
+      buttonText: 'Import Students',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const BulkImportStudentsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.verified_user_outlined,
+      title: 'Verify Challan',
+      description: 'Cross-check paid receipts and update payment status.',
+      buttonText: 'Verify Now',
+      onPressed: () {},
+    ),
+  ];
+
+  // ── Logout ────────────────────────────────────────────────────────────────
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              // 1. Firebase se sign out karein
               await FirebaseAuth.instance.signOut();
-
-              // 2. Navigator.pushAndRemoveUntil ka sahi use karein
-              if (context.mounted) {
+              if (ctx.mounted) {
                 Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WelcomeScreen(),
-                  ),
-                  (route) =>
-                      false, // Ye pichli saari screens ko remove kar dega
+                  ctx,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  (route) => false,
                 );
               }
             },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
   }
 
+  // ── Challan bottom sheet ──────────────────────────────────────────────────
+  void _showChallanBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'Select Challan Type',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _bottomSheetOption(
+              icon: Icons.person_outline,
+              title: 'Single Challan',
+              subtitle: 'Generate challan for one student',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const GenerateChallanScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _bottomSheetOption(
+              icon: Icons.group_outlined,
+              title: 'Bulk Challan',
+              subtitle: 'Generate for an entire class at once',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BulkGenerateChallanScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomSheetOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _navy.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: _navy, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Color(0xFF9CA3AF),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
+    final isTablet = screenWidth > 600;
+    final isMobile = screenWidth <= 600;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: _bg,
       drawer: _buildDrawer(),
-      body: Column(
+      // SafeArea ko yahan body ke foran baad wrap kiya gaya hai
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(isMobile),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isDesktop ? 32 : 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Overview',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Admin Dashboard',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ── Responsive cards ─────────────────────────────────────────
+                    if (isMobile)
+                      // Mobile: ListView — no overflow, full width cards
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _cards.length,
+                        itemBuilder: (_, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildMobileCard(_cards[i]),
+                        ),
+                      )
+                    else
+                      // Tablet / Desktop: GridView with fixed aspect ratio
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isDesktop ? 3 : 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: isDesktop ? 1.35 : 1.4,
+                        ),
+                        itemCount: _cards.length,
+                        itemBuilder: (_, i) => _buildGridCard(_cards[i]),
+                      ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Header — responsive ────────────────────────────────────────────────────
+  Widget _buildHeader(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: isMobile ? 10 : 0,
+      ),
+      height: isMobile ? null : 64,
+      decoration: BoxDecoration(
+        color: _navy,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: isMobile
+          // ── Mobile header: 2 rows ──────────────────────────────────────
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    // Menu button
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Brand
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'SchoolConnect',
+                        style: TextStyle(
+                          color: _white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Welcome row below on mobile
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.admin_panel_settings_outlined,
+                        color: Colors.white60,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Welcome, Admin',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          // ── Desktop/Tablet header: single row ─────────────────────────
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'SchoolConnect',
+                      style: TextStyle(
+                        color: _white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text(
+                      'Welcome, Admin',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'A',
+                          style: TextStyle(
+                            color: _white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ── Drawer ────────────────────────────────────────────────────────────────
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: _white,
+      child: Column(
         children: [
-          _buildHeader(),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+            color: _navy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'A',
+                      style: TextStyle(
+                        color: _white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Admin',
+                  style: TextStyle(
+                    color: _white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Administrator',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _drawerItem(
+            Icons.grid_view_rounded,
+            'Dashboard',
+            isSelected: true,
+            onTap: () => Navigator.pop(context),
+          ),
+          _drawerItem(
+            Icons.person_outline_rounded,
+            'Profile',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+              );
+            },
+          ),
+          const Spacer(),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 8),
+          _drawerItem(
+            Icons.logout_rounded,
+            'Logout',
+            isLogout: true,
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(context);
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem(
+    IconData icon,
+    String title, {
+    bool isSelected = false,
+    bool isLogout = false,
+    required VoidCallback onTap,
+  }) {
+    final color = isLogout
+        ? Colors.red.shade600
+        : (isSelected ? _navy : const Color(0xFF374151));
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected ? _navy.withOpacity(0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        dense: true,
+        onTap: onTap,
+        leading: Icon(icon, color: color, size: 20),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Grid card (tablet/desktop) — uses Expanded safely inside GridView ──────
+  Widget _buildGridCard(_CardData card) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top strip
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+          ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32.0),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: isDesktop ? 3 : (screenWidth > 600 ? 2 : 1),
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 1.5,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDashboardCard(
-                    icon: Icons.people_alt_outlined,
-                    title: 'Manage Users',
-                    description: 'Manage accounts for Teachers and Students.',
-                    buttonText: 'View All Users',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ManageUsersScreen(),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(card.icon, color: _navy, size: 22),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    card.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1A2A3A),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Expanded(
+                    child: Text(
+                      card.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: card.onPressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _navy,
+                        foregroundColor: _white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                    },
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.campaign_outlined,
-                    title: 'Post Announcements',
-                    description: 'Post updates, school notices, and news.',
-                    buttonText: 'New Post',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const AdminAnnouncementsScreen(),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
                         ),
-                      );
-                    },
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.assignment_late_outlined,
-                    title: 'Manage Complaints',
-                    description:
-                        'Review and track submissions from parents or staff.',
-                    buttonText: 'View Complaints',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const AdminComplaintsPage()),
-                      );
-                    },
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Generate Chalan',
-                    description:
-                        'Calculate student fees and print chalan slips.',
-                    buttonText: 'Create Chalan',
-                    onPressed: () {},
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.verified_user_outlined,
-                    title: 'Verify Chalan',
-                    description: 'Cross-check paid receipts and update status.',
-                    buttonText: 'Verify Now',
-                    onPressed: () {},
+                      ),
+                      child: Text(card.buttonText),
+                    ),
                   ),
                 ],
               ),
@@ -142,217 +741,123 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: Colors.white,
+  // ── Mobile card — horizontal layout, no overflow ───────────────────────────
+  Widget _buildMobileCard(_CardData card) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1D4ED8)),
+          // Top strip
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Icon box
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFEEF2F7),
+                    borderRadius: BorderRadius.circular(13),
                   ),
-                  child: const Icon(
-                    Icons.school,
-                    color: Color(0xFF1D4ED8),
-                    size: 22,
-                  ),
+                  child: Icon(card.icon, color: _navy, size: 24),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'SchoolConnect',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const SizedBox(width: 14),
+                // Text + button
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        card.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A2A3A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        card.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: card.onPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _navy,
+                            foregroundColor: _white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: Text(card.buttonText),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          _buildDrawerItem(
-            Icons.grid_view_rounded,
-            'Admin Dashboard',
-            isSelected: true,
-          ),
-          _buildDrawerItem(
-            Icons.person_outline_rounded,
-            'Profile',
-          ), // Profile button
-          const Spacer(),
-          _buildDrawerItem(
-            Icons.logout_rounded,
-            'Logout',
-            isLogout: true,
-          ), // Logout button
-          const SizedBox(height: 12),
         ],
       ),
     );
   }
+}
 
-  Widget _buildDrawerItem(
-    IconData icon,
-    String title, {
-    bool isSelected = false,
-    bool isLogout = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xFF1D4ED8).withValues(alpha: 0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isLogout
-              ? Colors.redAccent
-              : (isSelected ? const Color(0xFF1D4ED8) : Colors.black54),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isLogout
-                ? Colors.redAccent
-                : (isSelected ? const Color(0xFF1D4ED8) : Colors.black),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        onTap: () {
-          Navigator.pop(context);
-          if (title == 'Profile') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AdminProfileScreen(),
-              ),
-            );
-          } else if (title == 'Logout') {
-            _showLogoutDialog(context);
-          }
-        },
-      ),
-    );
-  }
+// ── Data model ────────────────────────────────────────────────────────────────
+class _CardData {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String buttonText;
+  final VoidCallback onPressed;
 
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B5E20), // School Green Color
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.menu, color: Colors.white, size: 28),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-              ),
-              const SizedBox(width: 16),
-              const Text(
-                'ADMIN DASHBOARD',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              const Text(
-                'Welcome, Admin',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 12),
-              CircleAvatar(
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                radius: 18,
-                child: const Text('🧑‍💼', style: TextStyle(fontSize: 18)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboardCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required String buttonText,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            children: [
-              Icon(icon, size: 40, color: const Color(0xFF1D4ED8)),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ],
-          ),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(fontSize: 13, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  const _CardData({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.buttonText,
+    required this.onPressed,
+  });
 }

@@ -19,8 +19,14 @@ class TeacherDashboardScreen extends StatefulWidget {
 
 class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  String userName = "Loading...";
-  String userClass = "Loading...";
+
+  static const _navy = Color(0xFF1E3A5F);
+  static const _bg = Color(0xFFF0F4F8);
+  static const _white = Colors.white;
+
+  // ── Dynamic data — fetched from Firestore (logic unchanged) ───────────────
+  String _userName = 'Loading...';
+  String _userClass = 'Loading...';
 
   @override
   void initState() {
@@ -30,210 +36,263 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   Future<void> fetchTeacherData() async {
     try {
-      User? user = FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        var doc = await FirebaseFirestore.instance
+        final doc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
         if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          final data = doc.data() as Map<String, dynamic>;
           if (mounted) {
             setState(() {
-              userName = data['name'] ?? "Teacher";
-              userClass = data.containsKey('class')
+              _userName = data['name'] ?? 'Teacher';
+              _userClass = data.containsKey('class')
                   ? data['class'].toString()
-                  : "No Class Assigned";
+                  : 'No Class Assigned';
             });
           }
         }
       }
     } catch (e) {
-      debugPrint("Error fetching data: $e");
+      debugPrint('Error fetching data: $e');
     }
   }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
+              if (ctx.mounted) {
                 Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WelcomeScreen(),
-                  ),
+                  ctx,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                   (route) => false,
                 );
               }
             },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
   }
 
+  // ── Cards list (logic unchanged) ──────────────────────────────────────────
+  List<_CardData> _cards(BuildContext context) => [
+    _CardData(
+      icon: Icons.check_circle_outline,
+      title: 'Attendance',
+      description: 'Mark daily attendance for class $_userClass.',
+      buttonText: 'Mark Attendance',
+      onPressed: () {
+        if (_userClass == 'Loading...' || _userClass == 'No Class Assigned') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Class data not ready yet!')),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MarkAttendanceScreen(teacherClass: _userClass),
+            ),
+          );
+        }
+      },
+    ),
+    _CardData(
+      icon: Icons.calendar_month_outlined,
+      title: 'Manage Leaves',
+      description: 'View, accept or reject student leave requests.',
+      buttonText: 'View Requests',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ManageLeavePage()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.campaign_outlined,
+      title: 'Announcements',
+      description: 'Create and view class or school notices.',
+      buttonText: 'View Notices',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ViewAnnouncementsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.assignment_outlined,
+      title: 'Post Homework',
+      description: 'Post new daily assignments for students.',
+      buttonText: 'Post Homework',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PostHomeworkScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.assessment_outlined,
+      title: 'Monthly Reports',
+      description: 'View and update individual student progress.',
+      buttonText: 'Upload Reports',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MonthlyReportsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.group_outlined,
+      title: 'My Students',
+      description: 'View all students enrolled in your class.',
+      buttonText: 'View Class',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ListOfStudentsScreen(teacherClass: _userClass),
+        ),
+      ),
+    ),
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isDesktop = screenWidth > 900;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+    final isTablet = screenWidth > 600;
+    final isMobile = screenWidth <= 600;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: _bg,
       drawer: _buildDrawer(),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isDesktop ? 32 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Class: $userClass',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1D4ED8),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount:
-                          isDesktop ? 3 : (screenWidth > 600 ? 2 : 1),
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 1.5,
+                    const SizedBox(height: 4),
+
+                    // ── Title + class badge ─────────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _buildDashboardCard(
-                          icon: Icons.check_circle_outline,
-                          title: 'Attendance',
-                          description:
-                              'Mark daily attendance for class $userClass.',
-                          buttonText: 'Mark Attendance',
-                          onPressed: () {
-                            print(
-                                "Button clicked!"); // Check karein console mein ye message aa raha hai?
-                            // Check karein ke class data loaded hai ya nahi
-                            if (userClass == "Loading..." ||
-                                userClass == "No Class Assigned") {
-                              print(
-                                  "Class is not loaded yet"); // Check karein agar ye print ho raha hai
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text("Class data not ready yet!")),
-                              );
-                            } else {
-                              print("Navigating to Attendance...");
-                              // Yahan navigator push lagayein
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MarkAttendanceScreen(
-                                    teacherClass:
-                                        userClass, // Dashboard wali class pass ho rahi hai
-                                  ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Overview',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF6B7280),
+                                  letterSpacing: 0.8,
                                 ),
-                              );
-                            }
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons
-                              .calendar_month_outlined, // Leave request ke liye suit karta hai
-                          title: 'Manage Leaves',
-                          description:
-                              'View, accept or reject student leave requests.',
-                          buttonText: 'View Requests',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ManageLeavePage()),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.campaign_outlined,
-                          title: 'Announcements',
-                          description: 'Create and view class/school notices.',
-                          buttonText: 'View',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ViewAnnouncementsScreen(),
                               ),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.assignment_outlined,
-                          title: 'Post Homework',
-                          description: 'Post new daily assignments.',
-                          buttonText: 'Post Homework',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PostHomeworkScreen(),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Teacher Dashboard',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1F2937),
+                                ),
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
-                        _buildDashboardCard(
-                          icon: Icons.assessment_outlined,
-                          title: 'Monthly Reports',
-                          description:
-                              'View and update individual student progress.',
-                          buttonText: 'Upload Reports',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const MonthlyReportsScreen(),
+                        // Class badge — from Firestore
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _navy.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _navy.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.class_outlined,
+                                color: _navy,
+                                size: 13,
                               ),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.group_outlined,
-                          title: 'My Students',
-                          description: 'View all students in the class.',
-                          buttonText: 'View Class',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ListOfStudentsScreen(
-                                    teacherClass:
-                                        userClass), // userClass wahi variable hai jo aapne dashboard mein fetch kiya tha
+                              const SizedBox(width: 5),
+                              Text(
+                                _userClass,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: _navy,
+                                ),
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+
+                    // ── Responsive cards ────────────────────────────────────
+                    if (isMobile)
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _cards(context).length,
+                        itemBuilder: (_, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildMobileCard(_cards(context)[i]),
+                        ),
+                      )
+                    else
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isDesktop ? 3 : 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: isDesktop ? 1.35 : 1.4,
+                        ),
+                        itemCount: _cards(context).length,
+                        itemBuilder: (_, i) =>
+                            _buildGridCard(_cards(context)[i]),
+                      ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -244,205 +303,549 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  // ── Header — responsive ────────────────────────────────────────────────────
+  Widget _buildHeader(bool isMobile) {
+    final initial = _userName.isNotEmpty && _userName != 'Loading...'
+        ? _userName[0].toUpperCase()
+        : 'T';
+
     return Container(
-      height: 65,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      padding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: isMobile ? 10 : 0,
+      ),
+      height: isMobile ? null : 64,
+      decoration: BoxDecoration(
+        color: _navy,
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black, size: 26),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'TEACHER DASHBOARD',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Text(
-                'Welcome, $userName',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                backgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
-                radius: 16,
-                child: const Text('🎓', style: TextStyle(fontSize: 16)),
-              ),
-            ],
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: isMobile
+          // ── Mobile: 2 rows ──────────────────────────────────────────────
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'SchoolConnect',
+                        style: TextStyle(
+                          color: _white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: const TextStyle(
+                              color: _white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Welcome, $_userName',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          // ── Desktop/Tablet: single row ──────────────────────────────────
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'SchoolConnect',
+                      style: TextStyle(
+                        color: _white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Welcome, $_userName',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: _white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
+  // ── Drawer ────────────────────────────────────────────────────────────────
   Widget _buildDrawer() {
+    final initial = _userName.isNotEmpty && _userName != 'Loading...'
+        ? _userName[0].toUpperCase()
+        : 'T';
+
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: _white,
       child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1D4ED8)),
-            child: Row(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+            color: _navy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.school,
-                    color: Color(0xFF1D4ED8),
-                    size: 22,
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: _white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'SchoolConnect',
+                const SizedBox(height: 12),
+                Text(
+                  _userName,
+                  style: const TextStyle(
+                    color: _white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Class: $_userClass',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          _buildDrawerItem(
+          const SizedBox(height: 12),
+          _drawerItem(
             Icons.grid_view_rounded,
             'Dashboard',
             isSelected: true,
+            onTap: () => Navigator.pop(context),
           ),
-          _buildDrawerItem(
+          _drawerItem(
             Icons.person_outline_rounded,
             'Profile',
-          ), // Profile button
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
           const Spacer(),
-          _buildDrawerItem(
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 8),
+          _drawerItem(
             Icons.logout_rounded,
             'Logout',
             isLogout: true,
-          ), // Logout button
-          const SizedBox(height: 12),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(context);
+            },
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(
+  Widget _drawerItem(
     IconData icon,
     String title, {
     bool isSelected = false,
     bool isLogout = false,
+    required VoidCallback onTap,
   }) {
-    return ListTile(
-      selected: isSelected,
-      leading: Icon(
-        icon,
-        color: isLogout
-            ? Colors.red
-            : (isSelected ? const Color(0xFF1D4ED8) : Colors.grey),
+    final color = isLogout
+        ? Colors.red.shade600
+        : (isSelected ? _navy : const Color(0xFF374151));
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected ? _navy.withOpacity(0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
       ),
-      title: Text(
-        title,
-        style: TextStyle(color: isLogout ? Colors.red : Colors.black),
+      child: ListTile(
+        dense: true,
+        onTap: onTap,
+        leading: Icon(icon, color: color, size: 20),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
       ),
-      onTap: () {
-        Navigator.pop(context);
-        if (title == 'Logout') {
-          _showLogoutDialog(context);
-        } else if (title == 'Profile') {
-          // Yahan maine sahi class name use kiya hai
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfileScreen()),
-          );
-        }
-      },
     );
   }
 
-  Widget _buildDashboardCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required String buttonText,
-    required VoidCallback onPressed,
-  }) {
+  // ── Grid card (tablet / desktop) ──────────────────────────────────────────
+  Widget _buildGridCard(_CardData card) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
-          // Halka sa shadow dene se Admin dashboard jaisa feel aayega
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 35, color: const Color(0xFF1D4ED8)),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            description,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-
-          // --- YE WALI LINE ZAROORI HAI ---
-          const Spacer(),
-          // --------------------------------
-
-          const SizedBox(height: 15),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
-              onPressed: onPressed,
-              child: Text(buttonText),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(card.icon, color: _navy, size: 22),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    card.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1A2A3A),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Expanded(
+                    child: Text(
+                      card.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: card.onPressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _navy,
+                        foregroundColor: _white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      child: Text(card.buttonText),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  // ── Mobile card — horizontal, no overflow ─────────────────────────────────
+  Widget _buildMobileCard(_CardData card) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Navy top strip
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon box
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2F7),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(card.icon, color: _navy, size: 24),
+                ),
+                const SizedBox(width: 14),
+                // Text + button
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        card.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A2A3A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        card.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: card.onPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _navy,
+                            foregroundColor: _white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: Text(card.buttonText),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Data model ────────────────────────────────────────────────────────────────
+class _CardData {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String buttonText;
+  final VoidCallback onPressed;
+
+  const _CardData({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.buttonText,
+    required this.onPressed,
+  });
 }

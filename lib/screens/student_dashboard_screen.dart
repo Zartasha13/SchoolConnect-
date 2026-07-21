@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:school_connect/screens/attendance_alerts_screen.dart';
+import 'package:school_connect/screens/download_challan_screen.dart';
 import 'package:school_connect/screens/send_leave_screen.dart';
 import 'package:school_connect/screens/submit_complaints_screen.dart';
 import 'package:school_connect/screens/view_announcements_screen.dart';
@@ -20,9 +21,13 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Dynamic variables
-  String userName = "Loading...";
-  String userClass = "...";
+  static const _navy = Color(0xFF1E3A5F);
+  static const _bg = Color(0xFFF0F4F8);
+  static const _white = Colors.white;
+
+  // ── Dynamic data — fetched from Firestore (logic unchanged) ───────────────
+  String _userName = 'Loading...';
+  String _userClass = '...';
 
   @override
   void initState() {
@@ -30,193 +35,264 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     fetchUserData();
   }
 
+  Future<void> fetchUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          setState(() {
+            _userName = data.containsKey('name') ? data['name'] : 'Student';
+            _userClass = data.containsKey('class')
+                ? '${data['class']}'
+                : 'Class N/A';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching data: $e');
+    }
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                // 'WelcomeScreen' ki jagah apni login screen ka naam dein
+              if (ctx.mounted) {
                 Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WelcomeScreen(),
-                  ),
+                  ctx,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                   (route) => false,
                 );
               }
             },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
   }
 
-  // Firestore se data fetch karne ka function
-  Future<void> fetchUserData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        DocumentSnapshot doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+  // ── Cards list (logic unchanged) ─────────────────────────────────────────
+  List<_CardData> _cards(BuildContext context) => [
+    _CardData(
+      icon: Icons.assignment_turned_in_outlined,
+      title: 'Attendance',
+      description: 'View your attendance record and alerts.',
+      buttonText: 'View Attendance',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AttendanceAlertsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.campaign_outlined,
+      title: 'Announcements',
+      description: 'View all school and class notices.',
+      buttonText: 'View Notices',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ViewAnnouncementsScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.rate_review_outlined,
+      title: 'View Homework',
+      description: 'Check daily homework posted by teachers.',
+      buttonText: 'View Homework',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StudentHomeworkListScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.edit_calendar_outlined,
+      title: 'Leave Request',
+      description: 'Apply for leave and track your request status.',
+      buttonText: 'Send Request',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SendLeaveRequestPage()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.assessment_outlined,
+      title: 'Monthly Reports',
+      description: 'Access your progress and attendance reports.',
+      buttonText: 'View Reports',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StudentReportViewScreen()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.report_problem_outlined,
+      title: 'Submit Complaint',
+      description: 'Draft and submit school-related issues.',
+      buttonText: 'Post Complaint',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SubmitComplaintPage()),
+      ),
+    ),
+    _CardData(
+      icon: Icons.receipt_long_outlined,
+      title: 'View Challans',
+      description: 'Track, view and download your monthly fee challans.',
+      buttonText: 'View Challans',
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ViewChallanScreen()),
+      ),
+    ),
+  ];
 
-        if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          setState(() {
-            userName = data.containsKey('name') ? data['name'] : "Student";
-            userClass = data.containsKey('class')
-                ? data['class'].toString()
-                : "No Class";
-          });
-        }
-      }
-    } catch (e) {
-      print("Error fetching data: $e");
-    }
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isDesktop = screenWidth > 900;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+    final isTablet = screenWidth > 600;
+    final isMobile = screenWidth <= 600;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: _bg,
       drawer: _buildDrawer(),
+      // SafeArea wraps everything so content stays below status bar
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isDesktop ? 32 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dynamic Class Display
-                    Text(
-                      'Class: $userClass',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1D4ED8),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount:
-                          isDesktop ? 3 : (screenWidth > 600 ? 2 : 1),
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 1.4,
+                    const SizedBox(height: 4),
+
+                    // ── Title row + class badge ─────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _buildDashboardCard(
-                          icon: Icons.assignment_turned_in_outlined,
-                          title: 'Attendance',
-                          description: 'Submit daily student leave request.',
-                          buttonText: 'Apply for Leave',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AttendanceAlertsScreen(),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Overview',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF6B7280),
+                                  letterSpacing: 0.8,
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.campaign_outlined,
-                          title: 'Announcements',
-                          description: 'View all school and class notices.',
-                          buttonText: 'View Notices',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ViewAnnouncementsScreen()),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.rate_review_outlined,
-                          title: 'View Homework',
-                          description:
-                              'Check daily homework posted by teachers.',
-                          buttonText: 'View Homework',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const StudentHomeworkListScreen(),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Student Dashboard',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1F2937),
+                                ),
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
-                        _buildDashboardCard(
-                          icon: Icons.edit_calendar_outlined,
-                          title: 'Leave Request',
-                          description:
-                              'Apply for leave easily and track your request status.',
-                          buttonText: 'Send Request',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SendLeaveRequestPage()),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.assessment_outlined,
-                          title: 'Monthly Reports',
-                          description:
-                              'Access progress and attendance reports.',
-                          buttonText: 'View Reports',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const StudentReportViewScreen(),
+                        // Class badge from Firestore
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _navy.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _navy.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.class_outlined,
+                                color: _navy,
+                                size: 13,
                               ),
-                            );
-                          },
-                        ),
-                        _buildDashboardCard(
-                          icon: Icons.report_problem_outlined,
-                          title: 'Submit Complaints',
-                          description:
-                              'Draft and submit school-related issues.',
-                          buttonText: 'Post Complaint',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SubmitComplaintPage()),
-                            );
-                          },
+                              const SizedBox(width: 5),
+                              Text(
+                                _userClass,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: _navy,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+
+                    // ── Responsive cards ──────────────────────────────────────
+                    if (isMobile)
+                      // Mobile: full-width ListView, no overflow
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _cards(context).length,
+                        itemBuilder: (_, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildMobileCard(_cards(context)[i]),
+                        ),
+                      )
+                    else
+                      // Tablet/Desktop: GridView with safe aspect ratio
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isDesktop ? 3 : 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: isDesktop ? 1.35 : 1.4,
+                        ),
+                        itemCount: _cards(context).length,
+                        itemBuilder: (_, i) =>
+                            _buildGridCard(_cards(context)[i]),
+                      ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -227,222 +303,427 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: Colors.white,
-      child: Column(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1D4ED8)),
-            child: Row(
+  // ── Header — responsive ────────────────────────────────────────────────────
+  Widget _buildHeader(bool isMobile) {
+    final initial = _userName.isNotEmpty && _userName != 'Loading...'
+        ? _userName[0].toUpperCase()
+        : 'S';
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: isMobile ? 10 : 0,
+      ),
+      height: isMobile ? null : 64,
+      decoration: BoxDecoration(
+        color: _navy,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: isMobile
+          // ── Mobile: 2 rows ─────────────────────────────────────────────
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Row(
+                  children: [
+                    // Menu
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Brand icon
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'SchoolConnect',
+                        style: TextStyle(
+                          color: _white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Welcome row below brand on mobile
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.school,
-                    color: Color(0xFF1D4ED8),
-                    size: 22,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: const TextStyle(
+                              color: _white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Welcome, $_userName',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'SchoolConnect',
+              ],
+            )
+          // ── Desktop/Tablet: single row ─────────────────────────────────
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_rounded,
+                          color: _white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: _white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'SchoolConnect',
+                      style: TextStyle(
+                        color: _white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Welcome, $_userName',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: _white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ── Drawer ────────────────────────────────────────────────────────────────
+  Widget _buildDrawer() {
+    final initial = _userName.isNotEmpty && _userName != 'Loading...'
+        ? _userName[0].toUpperCase()
+        : 'S';
+
+    return Drawer(
+      backgroundColor: _white,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+            color: _navy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: _white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _userName,
+                  style: const TextStyle(
+                    color: _white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Class: $_userClass',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          _buildDrawerItem(
+          const SizedBox(height: 12),
+          _drawerItem(
             Icons.grid_view_rounded,
-            'Student Dashboard',
+            'Dashboard',
             isSelected: true,
+            onTap: () => Navigator.pop(context),
           ),
-          _buildDrawerItem(
+          _drawerItem(
             Icons.person_outline_rounded,
             'Profile',
-          ), // Profile button
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
           const Spacer(),
-          _buildDrawerItem(
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 8),
+          _drawerItem(
             Icons.logout_rounded,
             'Logout',
             isLogout: true,
-          ), // Logout button
-          const SizedBox(height: 12),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(context);
+            },
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(
+  Widget _drawerItem(
     IconData icon,
     String title, {
     bool isSelected = false,
     bool isLogout = false,
+    required VoidCallback onTap,
   }) {
+    final color = isLogout
+        ? Colors.red.shade600
+        : (isSelected ? _navy : const Color(0xFF374151));
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xFF1D4ED8).withValues(alpha: 0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: isSelected ? _navy.withOpacity(0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: isLogout
-              ? Colors.redAccent
-              : (isSelected ? const Color(0xFF1D4ED8) : Colors.black54),
-        ),
+        dense: true,
+        onTap: onTap,
+        leading: Icon(icon, color: color, size: 20),
         title: Text(
           title,
           style: TextStyle(
-            color: isLogout
-                ? Colors.redAccent
-                : (isSelected ? const Color(0xFF1D4ED8) : Colors.black),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: color,
             fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
-        onTap: () async {
-          Navigator.pop(context); // Drawer band karein
-          if (title == 'Profile') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-          } else if (title == 'Logout') {
-            _showLogoutDialog(context);
-          }
-        },
       ),
     );
   }
 
-  Widget _buildHeader() {
+  // ── Grid card (tablet/desktop) ─────────────────────────────────────────────
+  Widget _buildGridCard(_CardData card) {
     return Container(
-      height: 65,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black, size: 26),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'STUDENT DASHBOARD',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Text(
-                'Welcome, $userName',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                backgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
-                radius: 16,
-                child: const Text('🎓', style: TextStyle(fontSize: 16)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboardCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required String buttonText,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: _white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              Icon(icon, size: 36, color: const Color(0xFF1D4ED8)),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
-              const SizedBox(height: 6),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.black54,
-                  height: 1.2,
-                ),
-              ),
-            ],
+            ),
           ),
-          SizedBox(
-            width: double.infinity,
-            height: 36,
-            child: ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(card.icon, color: _navy, size: 22),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    card.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1A2A3A),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Expanded(
+                    child: Text(
+                      card.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: card.onPressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _navy,
+                        foregroundColor: _white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      child: Text(card.buttonText),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -450,4 +731,121 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       ),
     );
   }
+
+  // ── Mobile card — horizontal layout, no overflow ever ─────────────────────
+  Widget _buildMobileCard(_CardData card) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2F7),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(card.icon, color: _navy, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        card.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A2A3A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        card.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: card.onPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _navy,
+                            foregroundColor: _white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: Text(card.buttonText),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Data model ────────────────────────────────────────────────────────────────
+class _CardData {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String buttonText;
+  final VoidCallback onPressed;
+
+  const _CardData({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.buttonText,
+    required this.onPressed,
+  });
 }

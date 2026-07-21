@@ -13,9 +13,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(); // Password Controller
+  final _passwordController = TextEditingController();
   final _rollNoController = TextEditingController();
-
+  final RegExp _emailRx = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
   String? _selectedClass;
   String? _selectedRole;
 
@@ -27,18 +27,21 @@ class _AddUserScreenState extends State<AddUserScreen> {
   }
 
   void _generatePassword() {
-    // Sirf naam ka pehla hissa lein ya pura, yahan `replaceAll` se spaces khatam kar rahe hain
-    String name = _nameController.text.trim().toLowerCase().replaceAll(" ", "");
-    if (name.isNotEmpty) {
+    final fullName = _nameController.text.trim();
+
+    if (fullName.isEmpty) {
       setState(() {
-        // Name + @ + 123 format
-        _passwordController.text = "$name@123";
+        _passwordController.text = '';
       });
-    } else {
-      setState(() {
-        _passwordController.text = "";
-      });
+      return;
     }
+
+    // Sirf first name lo
+    final firstName = fullName.split(' ').first.toLowerCase();
+
+    setState(() {
+      _passwordController.text = '$firstName@123';
+    });
   }
 
   Future<bool> checkRollNoExists(String rollNo) async {
@@ -48,8 +51,17 @@ class _AddUserScreenState extends State<AddUserScreen> {
         .where('rollNo', isEqualTo: rollNo)
         .get();
 
-    return snapshot.docs
-        .isNotEmpty; // Agar docs khali nahi hain, to roll no exist karta hai
+    return snapshot.docs.isNotEmpty;
+  }
+
+  Future<bool> checkEmailExists(String email) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
   }
 
   @override
@@ -66,7 +78,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(title: const Text("Create New User")),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E3A5F),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Create User",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           child: Container(
@@ -82,17 +102,22 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("CREATE NEW USER PROFILE",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "CREATE NEW USER",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 20),
 
                       // Name Field
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
-                            labelText: "Full Name",
-                            border: OutlineInputBorder()),
+                          labelText: "Full Name",
+                          border: OutlineInputBorder(),
+                        ),
                         validator: (v) => v!.isEmpty ? "Required" : null,
                       ),
                       const SizedBox(height: 15),
@@ -101,18 +126,21 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       TextFormField(
                         controller: _emailController,
                         decoration: const InputDecoration(
-                            labelText: "Email",
-                            border: OutlineInputBorder(),
-                            hintText: "example@gmail.com"),
+                          labelText: "Email",
+                          border: OutlineInputBorder(),
+                          hintText: "example@gmail.com",
+                        ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Email is required";
+                          final email = value?.trim() ?? '';
+
+                          if (email.isEmpty) {
+                            return 'Email is required';
                           }
-                          final emailRegex =
-                              RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                          if (!emailRegex.hasMatch(value)) {
-                            return "Please enter a valid email address";
+
+                          if (!_emailRx.hasMatch(email)) {
+                            return 'Enter a valid email';
                           }
+
                           return null;
                         },
                       ),
@@ -123,11 +151,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
                         controller: _passwordController,
                         readOnly: true,
                         decoration: const InputDecoration(
-                            labelText: "Generated Password",
-                            prefixIcon: Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(),
-                            filled: true,
-                            fillColor: Color(0xFFF0F0F0)),
+                          labelText: "Generated Password",
+                          prefixIcon: Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Color(0xFFF0F0F0),
+                        ),
                       ),
                       const SizedBox(height: 25),
 
@@ -139,8 +168,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           border: OutlineInputBorder(),
                         ),
                         items: ["Student", "Teacher"]
-                            .map((r) =>
-                                DropdownMenuItem(value: r, child: Text(r)))
+                            .map(
+                              (r) => DropdownMenuItem(value: r, child: Text(r)),
+                            )
                             .toList(),
                         onChanged: (v) => setState(() => _selectedRole = v),
                         validator: (v) =>
@@ -173,8 +203,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           border: OutlineInputBorder(),
                         ),
                         items: List.generate(10, (i) => (i + 1).toString())
-                            .map((c) => DropdownMenuItem(
-                                value: c, child: Text("Class $c")))
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c,
+                                child: Text("Class $c"),
+                              ),
+                            )
                             .toList(),
                         onChanged: (v) => setState(() => _selectedClass = v),
                         validator: (v) => v == null || v.isEmpty
@@ -187,96 +221,139 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       Row(
                         children: [
                           Expanded(
-                              child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text("Cancel"))),
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                          ),
                           const SizedBox(width: 15),
                           Expanded(
-                              child: FilledButton(
-                                  onPressed: () async {
-                                    if (_formKey.currentState!.validate()) {
-                                      if (_selectedRole == "Student") {
-                                        bool exists = await checkRollNoExists(
-                                            _rollNoController.text.trim());
-                                        if (exists) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                "Error: This Roll Number already exists!"),
-                                            backgroundColor: Colors.red,
-                                          ));
-                                          return;
-                                        }
-                                      }
-                                      showDialog(
-                                        context: context,
-                                        barrierDismissible: false,
-                                        builder: (context) => const Center(
-                                            child: CircularProgressIndicator()),
+                            child: FilledButton(
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  bool emailExists = await checkEmailExists(
+                                    _emailController.text.trim(),
+                                  );
+
+                                  if (emailExists) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "This email already exists.",
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (_selectedRole == "Student") {
+                                    bool exists = await checkRollNoExists(
+                                      _rollNoController.text.trim(),
+                                    );
+                                    if (exists) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Error: This Roll Number already exists!",
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
                                       );
-
-                                      try {
-                                        UserCredential userCredential =
-                                            await FirebaseAuth.instance
-                                                .createUserWithEmailAndPassword(
-                                          email: _emailController.text.trim(),
-                                          password:
-                                              _passwordController.text.trim(),
-                                        );
-
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(userCredential.user!.uid)
-                                            .set({
-                                          "uid": userCredential.user!.uid,
-                                          "name": _nameController.text.trim(),
-                                          "email": _emailController.text.trim(),
-                                          "role": _selectedRole,
-                                          "rollNo":
-                                              _rollNoController.text.trim(),
-                                          "class": _selectedClass ?? "N/A",
-                                          "isPasswordChanged": false,
-                                          "createdAt":
-                                              FieldValue.serverTimestamp(),
-                                        });
-
-                                        if (mounted) {
-                                          Navigator.pop(context);
-                                          Navigator.pop(context);
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                                  content: Text(
-                                                      "User created successfully!")));
-                                        }
-                                      } on FirebaseAuthException catch (e) {
-                                        String errorMessage =
-                                            e.message ?? "Error occurred";
-                                        if (e.code == 'email-already-in-use') {
-                                          errorMessage =
-                                              "Yeh email pehle se istemal ho rahi hai.";
-                                        }
-
-                                        if (mounted) {
-                                          Navigator.pop(context);
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(SnackBar(
-                                            content: Text(errorMessage),
-                                            backgroundColor: Colors.red,
-                                          ));
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          Navigator.pop(context);
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(SnackBar(
-                                            content: Text("Error: $e"),
-                                            backgroundColor: Colors.red,
-                                          ));
-                                        }
-                                      }
+                                      return;
                                     }
-                                  },
-                                  child: const Text("Create User"))),
+                                  }
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+
+                                  try {
+                                    UserCredential userCredential =
+                                        await FirebaseAuth.instance
+                                            .createUserWithEmailAndPassword(
+                                              email: _emailController.text
+                                                  .trim(),
+                                              password: _passwordController.text
+                                                  .trim(),
+                                            );
+                                    final Map<String, dynamic> userData = {
+                                      "uid": userCredential.user!.uid,
+                                      "name": _nameController.text.trim(),
+                                      "email": _emailController.text.trim(),
+                                      "role": _selectedRole,
+                                      "class": _selectedClass ?? "N/A",
+                                      "password": _passwordController.text
+                                          .trim(),
+                                      "isPasswordChanged": false,
+                                      "createdAt": FieldValue.serverTimestamp(),
+                                    };
+
+                                    // Sirf Student ke liye rollNo save hoga
+                                    if (_selectedRole == "Student") {
+                                      userData["rollNo"] = _rollNoController
+                                          .text
+                                          .trim();
+                                    }
+
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(userCredential.user!.uid)
+                                        .set(userData);
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "User created successfully!",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } on FirebaseAuthException catch (e) {
+                                    String errorMessage =
+                                        e.message ?? "Error occurred";
+                                    if (e.code == 'email-already-in-use') {
+                                      errorMessage = "Email Already in Use.";
+                                    }
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(errorMessage),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text("Error: $e"),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              child: const Text("Create User"),
+                            ),
+                          ),
                         ],
                       ),
                     ],

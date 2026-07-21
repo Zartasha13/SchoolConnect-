@@ -35,17 +35,15 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
-          // 1. Agar connection abhi process ho raha hai
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-                body: Center(child: CircularProgressIndicator()));
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
-
           // 2. Agar user logged in hai
           else if (snapshot.hasData) {
             return RoleBasedNavigator(user: snapshot.data!);
           }
-
           // 3. Agar user waqai logged out hai
           else {
             return const WelcomeScreen();
@@ -63,8 +61,10 @@ class RoleBasedNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DocumentSnapshot>(
-      future:
-          FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
