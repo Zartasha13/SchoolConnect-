@@ -127,9 +127,10 @@ class _ViewChallanScreenState extends State<ViewChallanScreen> {
   // ── Download PDF ───────────────────────────────────────────────────────────
   Future<void> _downloadPdf(BuildContext ctx, String pdfUrl) async {
     final uri = Uri.parse(_downloadUrl(pdfUrl));
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+
+    final success = await launchUrl(uri, mode: LaunchMode.platformDefault);
+
+    if (!success) {
       _showError(ctx, 'Could not download PDF.');
     }
   }
@@ -283,13 +284,13 @@ class _ViewChallanScreenState extends State<ViewChallanScreen> {
                   Row(
                     children: [
                       const Icon(
-                        Icons.verified_outlined,
+                        Icons.badge_outlined,
                         color: Colors.white70,
                         size: 13,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Roll# $_myRollNo  •  Verified',
+                        'Roll# $_myRollNo',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,

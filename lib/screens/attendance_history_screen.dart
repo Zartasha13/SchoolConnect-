@@ -15,20 +15,24 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   String? selectedDate; // Filter variable
 
   void _deleteSelected() async {
-    final toDelete =
-        selectedItems.entries.where((e) => e.value).map((e) => e.key).toList();
+    final toDelete = selectedItems.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
     if (toDelete.isEmpty) return;
 
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Bulk Delete"),
-        content:
-            Text("Are you sure you want to delete ${toDelete.length} records?"),
+        content: Text(
+          "Are you sure you want to delete ${toDelete.length} records?",
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
@@ -41,9 +45,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     if (confirm == true) {
       WriteBatch batch = FirebaseFirestore.instance.batch();
       for (var id in toDelete) {
-        batch.delete(FirebaseFirestore.instance
-            .collection('attendance_records')
-            .doc(id));
+        batch.delete(
+          FirebaseFirestore.instance.collection('attendance_records').doc(id),
+        );
       }
       await batch.commit();
       setState(() {
@@ -67,8 +71,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Attendance History",
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Attendance History",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF0D47A1),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -91,7 +97,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
             IconButton(
               icon: const Icon(Icons.clear),
               onPressed: () => setState(() => selectedDate = null),
-            )
+            ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -139,7 +145,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   children: [
                     if (isSelectionMode)
                       Checkbox(
-                        value: selectedItems.length == records.length &&
+                        value:
+                            selectedItems.length == records.length &&
                             records.isNotEmpty,
                         onChanged: (val) => setState(() {
                           for (var doc in records) {
@@ -148,19 +155,23 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                         }),
                       ),
                     TextButton(
-                        onPressed: () =>
-                            setState(() => isSelectionMode = !isSelectionMode),
-                        child: Text(isSelectionMode ? "Cancel" : "Select")),
+                      onPressed: () =>
+                          setState(() => isSelectionMode = !isSelectionMode),
+                      child: Text(isSelectionMode ? "Cancel" : "Select"),
+                    ),
                     const Spacer(),
                     if (isSelectionMode)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red),
+                          backgroundColor: Colors.red,
+                        ),
                         onPressed: _deleteSelected,
                         icon: const Icon(Icons.delete, color: Colors.white),
-                        label: const Text("Delete Selected",
-                            style: TextStyle(color: Colors.white)),
-                      )
+                        label: const Text(
+                          "Delete Selected",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -173,27 +184,32 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                     final data = doc.data() as Map<String, dynamic>;
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       child: ListTile(
                         leading: isSelectionMode
                             ? Checkbox(
                                 value: selectedItems[doc.id] ?? false,
                                 onChanged: (val) => setState(
-                                    () => selectedItems[doc.id] = val!),
+                                  () => selectedItems[doc.id] = val!,
+                                ),
                               )
                             : CircleAvatar(
                                 backgroundColor: data['status'] == 'Present'
                                     ? Colors.green
                                     : Colors.red,
                                 child: Icon(
-                                    data['status'] == 'Present'
-                                        ? Icons.check
-                                        : Icons.close,
-                                    color: Colors.white),
+                                  data['status'] == 'Present'
+                                      ? Icons.check
+                                      : Icons.close,
+                                  color: Colors.white,
+                                ),
                               ),
                         title: Text(data['studentName'] ?? 'Unknown'),
                         subtitle: Text(
-                            "Date: ${data['date']} | Status: ${data['status']}"),
+                          "Date: ${data['date']} | Status: ${data['status']}",
+                        ),
                       ),
                     );
                   },

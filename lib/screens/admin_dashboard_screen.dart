@@ -266,11 +266,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: _bg,
       drawer: _buildDrawer(),
       // SafeArea ko yahan body ke foran baad wrap kiya gaya hai
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(isMobile),
-            Expanded(
+      body: Column(
+        children: [
+          _buildHeader(isMobile),
+          Expanded(
+            child: SafeArea(
+              top: false,
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isDesktop ? 32 : 16),
                 child: Column(
@@ -329,18 +330,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Header — responsive ────────────────────────────────────────────────────
   Widget _buildHeader(bool isMobile) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: isMobile ? 10 : 0,
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: isMobile ? statusBarHeight + 8 : 0,
+        bottom: isMobile ? 8 : 0,
       ),
       height: isMobile ? null : 64,
       decoration: BoxDecoration(
@@ -409,9 +413,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const SizedBox(height: 6),
                 // Welcome row below on mobile
                 Container(
+                  constraints: const BoxConstraints(minHeight: 42),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 6,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
@@ -425,12 +430,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         size: 14,
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        'Welcome, Admin',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      const Flexible(
+                        child: Text(
+                          'Welcome, Admin',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],

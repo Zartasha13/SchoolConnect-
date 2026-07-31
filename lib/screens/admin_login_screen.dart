@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:school_connect/auth/forgot_password_screen.dart';
 import 'package:school_connect/screens/admin_dashboard_screen.dart';
-import '../theme/app_theme.dart'; // Theme file ko link kiya
 //import 'package:school_connect/auth/forgot_password_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -22,7 +21,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -32,7 +31,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: Container(
                 height: 240,
                 width: double.infinity,
-                color: AppTheme.primaryBlue, // Global primary blue color
+                color: const Color(0xFF1E3A5F), // Global primary blue color
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -141,9 +140,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     height: 55,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor, // AppTheme se primaryColor utha rha hai
+                        backgroundColor: const Color(0xFF1E3A5F),
                         foregroundColor: Colors.white, // Text color white
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
@@ -173,9 +170,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           // Firebase auth ko call kr k sign in krwana
                           final credential = await FirebaseAuth.instance
                               .signInWithEmailAndPassword(
-                            email: email,
-                            password: password,
-                          );
+                                email: email,
+                                password: password,
+                              );
 
                           String? uid = credential.user?.uid;
 
@@ -189,8 +186,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                             if (userDoc.exists) {
                               // Firestore se role uthayein (Ensure karein aapke DB mein field ka naam 'role' hi ho)
-                              String userRole =
-                                  userDoc.get('role').toString().toLowerCase();
+                              String userRole = userDoc
+                                  .get('role')
+                                  .toString()
+                                  .toLowerCase();
 
                               if (userRole == 'admin') {
                                 // ✅ Agar admin hai toh login successfully karne dein

@@ -188,11 +188,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       backgroundColor: _bg,
       drawer: _buildDrawer(),
       // SafeArea wraps everything so content stays below status bar
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(isMobile),
-            Expanded(
+      body: Column(
+        children: [
+          _buildHeader(isMobile),
+
+          Expanded(
+            child: SafeArea(
+              top: false,
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isDesktop ? 32 : 16),
                 child: Column(
@@ -297,24 +299,26 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Header — responsive ────────────────────────────────────────────────────
   Widget _buildHeader(bool isMobile) {
+    final statusBar = MediaQuery.of(context).padding.top;
+
     final initial = _userName.isNotEmpty && _userName != 'Loading...'
         ? _userName[0].toUpperCase()
         : 'S';
-
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: isMobile ? 10 : 0,
+      padding: EdgeInsets.only(
+        top: statusBar,
+        left: 16,
+        right: 16,
+        bottom: isMobile ? 10 : 0,
       ),
-      height: isMobile ? null : 64,
       decoration: BoxDecoration(
         color: _navy,
         boxShadow: [

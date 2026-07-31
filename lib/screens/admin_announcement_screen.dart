@@ -23,7 +23,7 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
   static const _textSec = Color(0xFF6B7280);
   static const _bg = Color(0xFFF8FAFC);
   static const _white = Colors.white;
-
+  int selectedTab = 0;
   // ══════════════════════════════════════════════════════════════════════════
   // LOGIC — UNTOUCHED
   // ══════════════════════════════════════════════════════════════════════════
@@ -154,16 +154,83 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
             ),
           ),
-          body: SingleChildScrollView(
-            padding: EdgeInsets.all(isWide ? 28 : 16),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left — form
-                      Expanded(
-                        flex: 4,
-                        child: _FormCard(
+          body: Column(
+            children: [
+              // Tabs
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            selectedTab = 0;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedTab == 0
+                                ? _navy
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "New Announcement",
+                              style: TextStyle(
+                                color: selectedTab == 0 ? Colors.white : _navy,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            selectedTab = 1;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedTab == 1
+                                ? _navy
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Posted Announcements",
+                              style: TextStyle(
+                                color: selectedTab == 1 ? Colors.white : _navy,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isWide ? 28 : 16),
+                  child: selectedTab == 0
+                      ? _FormCard(
                           titleController: titleController,
                           descController: descController,
                           sendToTeachers: sendToTeachers,
@@ -181,43 +248,85 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
                             });
                           },
                           onPost: postAnnouncement,
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      // Right — list
-                      Expanded(flex: 6, child: _PostedList(isWide: isWide)),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      _FormCard(
-                        titleController: titleController,
-                        descController: descController,
-                        sendToTeachers: sendToTeachers,
-                        sendToStudents: sendToStudents,
-                        isLoading: isLoading,
-                        attachmentFile: attachmentFile,
-                        onTeacherToggle: (v) =>
-                            setState(() => sendToTeachers = v),
-                        onStudentToggle: (v) =>
-                            setState(() => sendToStudents = v),
-                        onPickAttachment: pickAttachment,
-
-                        onRemoveAttachment: () {
-                          setState(() {
-                            attachmentFile = null;
-                          });
-                        },
-
-                        onPost: postAnnouncement,
-                      ),
-                      const SizedBox(height: 24),
-                      _PostedList(isWide: isWide),
-                    ],
-                  ),
+                        )
+                      : _PostedList(isWide: isWide),
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTabs() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                setState(() {
+                  selectedTab = 0;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selectedTab == 0 ? _navy : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    "New Announcement",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: selectedTab == 0 ? Colors.white : _navy,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                setState(() {
+                  selectedTab = 1;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selectedTab == 1 ? _navy : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    "Posted Announcements",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: selectedTab == 1 ? Colors.white : _navy,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -669,24 +778,23 @@ class _PostedList extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             decoration: const BoxDecoration(
-              color: Color(0xFFF8FAFC),
+              color: _navy,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
               ),
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _navy.withOpacity(0.08),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.list_alt_outlined,
-                    color: _navy,
+                    color: Colors.white,
                     size: 18,
                   ),
                 ),
@@ -699,13 +807,16 @@ class _PostedList extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: _navy,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 2),
                     Text(
                       'Recently published announcements.',
-                      style: const TextStyle(fontSize: 12, color: _textSec),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
                     ),
                   ],
                 ),

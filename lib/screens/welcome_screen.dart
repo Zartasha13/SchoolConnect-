@@ -34,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
                       Container(
                         height: 250,
                         width: double.infinity,
-                        color: AppTheme.primaryBlue,
+                        color: const Color(0xFF1E3A5F),
                       ),
 
                       // 2. White Curve
@@ -137,7 +137,7 @@ class WelcomeScreen extends StatelessWidget {
                         height: 75,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: primaryBlue,
+                          color: const Color(0xFF1E3A5F),
                           borderRadius: BorderRadius.circular(40),
                           boxShadow: [
                             BoxShadow(

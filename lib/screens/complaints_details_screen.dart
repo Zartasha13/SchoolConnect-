@@ -47,9 +47,24 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       appBar: AppBar(
-        title: const Text("Complaint Details"),
-        backgroundColor: const Color(0xff1746A2),
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
+        toolbarHeight: 65,
+        title: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Complaint Details",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -69,50 +84,220 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
           // Date Formatting
           String dateStr = "N/A";
           if (data['createdAt'] != null) {
-            dateStr = DateFormat('dd MMM yyyy, hh:mm a')
-                .format((data['createdAt'] as Timestamp).toDate());
+            dateStr = DateFormat(
+              'dd MMM yyyy, hh:mm a',
+            ).format((data['createdAt'] as Timestamp).toDate());
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width < 700 ? 12 : 24,
+              vertical: 20,
+            ),
             child: Column(
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildRow(
-                            "Submitted By:", data['studentName'] ?? "N/A"),
-                        _buildRow("Class:", data['class'] ?? "N/A"),
-                        _buildRow("Roll No:", data['rollNo'] ?? "N/A"),
-                        const Divider(),
-                        _buildRow("Title", data['title'] ?? "No Title"),
-                        _buildRow("Date", dateStr),
-                        _buildRow(
-                            "Category", data['category'] ?? "No Category"),
-                        _buildRow("Status", data['status'] ?? "Pending"),
-                        const Divider(),
-                        const Text("Description:",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 5),
-                        Text(data['details'] ?? "No details provided."),
-                      ],
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Card(
+                      elevation: 3,
+                      shadowColor: Colors.black12,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.only(bottom: 18),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xff1746A2,
+                                      ).withOpacity(.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.description_outlined,
+                                      color: Color(0xff1746A2),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: const [
+                                        Text(
+                                          "Complaint Information",
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          "Review complaint details below",
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const Divider(height: 28),
+                            const Divider(),
+
+                            _buildRow(
+                              "Submitted By",
+                              data['studentName'] ?? "N/A",
+                            ),
+                            _buildRow("Class", data['class'] ?? "N/A"),
+                            _buildRow("Roll No", data['rollNo'] ?? "N/A"),
+                            _buildRow("Title", data['title'] ?? "No Title"),
+                            _buildRow("Date", dateStr),
+                            _buildRow(
+                              "Category",
+                              data['category'] ?? "No Category",
+                            ),
+                            _buildRow("Status", data['status'] ?? "Pending"),
+
+                            const SizedBox(height: 20),
+
+                            const Text(
+                              "Description",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color(0xFF1E3A5F),
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                data['details'] ?? "No details provided.",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.6,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 28),
 
-                // Update Buttons
-                const Text("Update Status",
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _statusButton("In Progress", Colors.blue, data),
-                    _statusButton("Resolved", Colors.green, data),
-                  ],
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Update Complaint Status",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A5F),
+                        ),
+                      ),
+
+                      const SizedBox(height: 5),
+
+                      Text(
+                        "Select the current progress of this complaint.",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 450) {
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _statusButton(
+                                    "In Progress",
+                                    Colors.blue,
+                                    data,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _statusButton(
+                                    "Resolved",
+                                    Colors.green,
+                                    data,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _statusButton(
+                                  "In Progress",
+                                  Colors.blue,
+                                  data,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _statusButton(
+                                  "Resolved",
+                                  Colors.green,
+                                  data,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -123,43 +308,58 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
   }
 
   Widget _statusButton(
-      String status, Color baseColor, Map<String, dynamic> data) {
-    bool isSelected = data['status'] == status;
+    String status,
+    Color baseColor,
+    Map<String, dynamic> data,
+  ) {
+    final bool isSelected = data['status'] == status;
 
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            // Agar select hai to solid color, nahi to transparent/light
-            backgroundColor:
-                isSelected ? baseColor : baseColor.withValues(alpha: 0.05),
-            foregroundColor: isSelected ? Colors.white : baseColor,
-            elevation: isSelected ? 3 : 0,
-            shadowColor: baseColor.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              // Border dikhegi taake professional look aaye
-              side: BorderSide(
-                color: baseColor,
-                width: isSelected ? 0 : 1.2,
+    return SizedBox(
+      height: 52,
+      child: ElevatedButton(
+        onPressed: isSelected
+            ? null
+            : () {
+                _updateStatus(status);
+              },
+
+        style: ElevatedButton.styleFrom(
+          elevation: isSelected ? 2 : 0,
+          backgroundColor: isSelected ? baseColor : Colors.white,
+          foregroundColor: isSelected ? Colors.white : baseColor,
+          disabledBackgroundColor: baseColor,
+          disabledForegroundColor: Colors.white,
+
+          side: BorderSide(color: baseColor, width: 1.5),
+
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              status == "Resolved"
+                  ? Icons.check_circle_outline
+                  : Icons.pending_actions_outlined,
+              size: 20,
+            ),
+
+            const SizedBox(width: 8),
+
+            Flexible(
+              child: Text(
+                status,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-          onPressed: () {
-            // Sirf tab update ho agar status change ho raha ho
-            if (!isSelected) {
-              _updateStatus(status);
-            }
-          },
-          child: Text(
-            status,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -167,14 +367,42 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
 
   Widget _buildRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
               style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

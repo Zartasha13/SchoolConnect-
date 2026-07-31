@@ -45,7 +45,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
               child: Container(
                 height: 260,
                 width: double.infinity,
-                color: AppTheme.primaryBlue, // SchoolConnect primary color
+                color: const Color(0xFF1E3A5F),
                 child: const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -144,6 +144,14 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A5F), // Navy Theme
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                       onPressed: () async {
                         String username = usernameController.text.trim();
                         String email = emailController.text.trim();
@@ -168,9 +176,9 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                         try {
                           final credential = await FirebaseAuth.instance
                               .signInWithEmailAndPassword(
-                            email: email,
-                            password: password,
-                          );
+                                email: email,
+                                password: password,
+                              );
 
                           String? uid = credential.user?.uid;
 

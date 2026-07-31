@@ -8,18 +8,37 @@ class ReportDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF0F4F8),
+
       appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.grey.shade100,
+        foregroundColor: Colors.white,
+
         title: Text(
-          "Report: ${reportData['month']}",
+          "Report - ${reportData['month']}",
           style: const TextStyle(
-            color: Colors.white, // Text color white
+            color: Colors.white,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
           ),
         ),
-        backgroundColor:
-            const Color(0xFF1746A2), // Apne main blue color ke sath
-        iconTheme: const IconThemeData(
-          color: Colors.white, // Back button color white
+
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF16304E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: Colors.white.withOpacity(0.08)),
         ),
       ),
       body: SingleChildScrollView(
@@ -27,21 +46,52 @@ class ReportDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildDetailCard("Academic Performance", [
-              _buildRow("Overall:", reportData['overallPerformance']),
+              _buildPerformanceRow(
+                "Overall",
+                reportData['overallPerformance'] ?? "N/A",
+              ),
               _buildRow("Homework:", reportData['homeworkCompletion']),
               _buildRow("Participation:", reportData['classParticipation']),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 2),
             _buildDetailCard("Attendance", [
-              _buildRow("Total Days:", reportData['totalDays'].toString()),
-              _buildRow("Present:", reportData['presentDays'].toString()),
-              _buildRow("Absent:", reportData['absentDays'].toString()),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAttendanceBox(
+                      "Total",
+                      reportData['totalDays'].toString(),
+                      Colors.blue,
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: _buildAttendanceBox(
+                      "Present",
+                      reportData['presentDays'].toString(),
+                      Colors.green,
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: _buildAttendanceBox(
+                      "Absent",
+                      reportData['absentDays'].toString(),
+                      Colors.red,
+                    ),
+                  ),
+                ],
+              ),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 2),
             _buildDetailCard("Teacher Remarks", [
               Text(reportData['remarks'] ?? "No remarks added."),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 2),
             if (reportData['attachmentUrls'] != null &&
                 (reportData['attachmentUrls'] as List).isNotEmpty)
               _buildDetailCard("Attachments", [
@@ -52,20 +102,32 @@ class ReportDetailScreen extends StatelessWidget {
                   children: (reportData['attachmentUrls'] as List).map((url) {
                     return GestureDetector(
                       onTap: () {
-                        // Image par click karne par full screen view open karne ke liye
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    FullScreenImage(imageUrl: url)));
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImage(imageUrl: url),
+                          ),
+                        );
                       },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          url,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            url,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     );
@@ -81,29 +143,138 @@ class ReportDetailScreen extends StatelessWidget {
   Widget _buildDetailCard(String title, List<Widget> children) {
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 5)]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        const Divider(),
-        ...children,
-      ]),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Color(0xFF1E3A5F),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Divider(color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          ...children,
+        ],
+      ),
     );
   }
 
   Widget _buildRow(String label, String value) {
     return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold))
-            ]));
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E3A5F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceRow(String label, String value) {
+    Color color;
+
+    switch (value.toLowerCase()) {
+      case "excellent":
+        color = Colors.green;
+        break;
+      case "good":
+        color = Colors.blue;
+        break;
+      case "average":
+        color = Colors.orange;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(.12),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceBox(String title, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.08),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 }
 
@@ -116,11 +287,10 @@ class FullScreenImage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-          backgroundColor: Colors.black,
-          iconTheme: const IconThemeData(color: Colors.white)),
-      body: Center(
-        child: Image.network(imageUrl),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      body: Center(child: Image.network(imageUrl)),
     );
   }
 }

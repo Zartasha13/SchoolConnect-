@@ -115,7 +115,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => MarkAttendanceScreen(teacherClass: _userClass),
+              builder: (_) =>
+                  AttendanceManagementScreen(teacherClass: _userClass),
             ),
           );
         }
@@ -148,7 +149,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       buttonText: 'Post Homework',
       onPressed: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const PostHomeworkScreen()),
+        MaterialPageRoute(builder: (_) => const HomeworkManagementScreen()),
       ),
     ),
     _CardData(
@@ -190,11 +191,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       key: _scaffoldKey,
       backgroundColor: _bg,
       drawer: _buildDrawer(),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(isMobile),
-            Expanded(
+      body: Column(
+        children: [
+          _buildHeader(isMobile),
+          Expanded(
+            child: SafeArea(
+              top: false,
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isDesktop ? 32 : 16),
                 child: Column(
@@ -297,22 +299,25 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Header — responsive ────────────────────────────────────────────────────
   Widget _buildHeader(bool isMobile) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
     final initial = _userName.isNotEmpty && _userName != 'Loading...'
         ? _userName[0].toUpperCase()
         : 'T';
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: isMobile ? 10 : 0,
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: isMobile ? statusBarHeight + 8 : 0,
+        bottom: isMobile ? 8 : 0,
       ),
       height: isMobile ? null : 64,
       decoration: BoxDecoration(
@@ -378,9 +383,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ),
                 const SizedBox(height: 6),
                 Container(
+                  constraints: const BoxConstraints(minHeight: 42),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 6,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
@@ -407,15 +413,16 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
+                      Flexible(
                         child: Text(
                           'Welcome, $_userName',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

@@ -30,17 +30,34 @@ class AttendanceAlertsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1746A2),
-        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1E3A5F),
+        foregroundColor: Colors.white,
         title: const Text(
           "Attendance Alerts",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF16304E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
       ),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('notifications')
@@ -48,6 +65,7 @@ class AttendanceAlertsScreen extends StatelessWidget {
             .where('userId', isEqualTo: currentUser!.uid)
             .orderBy('createdAt', descending: true)
             .snapshots(),
+
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -60,9 +78,10 @@ class AttendanceAlertsScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.notifications_none, size: 80, color: Colors.grey),
                   SizedBox(height: 15),
-                  Text("No Attendance Alerts",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(
+                    "No Attendance Alerts",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             );
@@ -79,22 +98,25 @@ class AttendanceAlertsScreen extends StatelessWidget {
 
               Timestamp? timestamp =
                   (data['createdAt'] ?? data['date']) as Timestamp?;
+
               DateTime date = timestamp?.toDate() ?? DateTime.now();
 
-              return InkWell(
-                onTap: () => _showDetails(context, data),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3)),
-                    ],
-                  ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _showDetails(context, data),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -102,72 +124,96 @@ class AttendanceAlertsScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              shape: BoxShape.circle),
-                          child: const Icon(Icons.warning_amber_rounded,
-                              color: Colors.red, size: 28),
+                            color: Colors.red.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.red,
+                            size: 28,
+                          ),
                         ),
+
                         const SizedBox(width: 15),
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("Absence Alert",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
+                              const Text(
+                                "Absence Alert",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
                               const SizedBox(height: 6),
-                              Text(data['message'] ?? '',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black87)),
+
+                              Text(
+                                data['message'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+
                               const SizedBox(height: 10),
+
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today,
-                                      size: 14, color: Colors.grey),
+                                  const Icon(
+                                    Icons.calendar_today,
+                                    size: 14,
+                                    color: Colors.grey,
+                                  ),
                                   const SizedBox(width: 5),
-                                  Text("${date.day}/${date.month}/${date.year}",
-                                      style: const TextStyle(
-                                          color: Colors.grey, fontSize: 12)),
+                                  Text(
+                                    "${date.day}/${date.month}/${date.year}",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        // Added Delete Button
+
                         IconButton(
-                          icon:
-                              const Icon(Icons.delete, color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.redAccent,
+                          ),
                           onPressed: () {
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text("Delete Alert"),
                                 content: const Text(
-                                    "Are you sure you want to delete this notification?"),
+                                  "Are you sure you want to delete this notification?",
+                                ),
                                 actions: [
                                   TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text("Cancel")),
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("Cancel"),
+                                  ),
                                   TextButton(
                                     onPressed: () {
                                       _deleteNotification(doc.id);
                                       Navigator.pop(context);
                                     },
-                                    child: const Text("Delete",
-                                        style: TextStyle(color: Colors.red)),
+                                    child: const Text(
+                                      "Delete",
+                                      style: TextStyle(color: Colors.red),
+                                    ),
                                   ),
                                 ],
                               ),
                             );
                           },
                         ),
-                        if (data['isRead'] == false)
-                          Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                  color: Colors.red, shape: BoxShape.circle)),
                       ],
                     ),
                   ),

@@ -26,27 +26,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Light professional background
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.white,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-        ),
-        title: const Text(
-          'SchoolConnect',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        backgroundColor: const Color(0xFF1E3A5F),
+        foregroundColor: Colors.white,
         centerTitle: true,
+        toolbarHeight: 70,
+        title: const Text(
+          "Forgot Password",
+          style: TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -62,23 +53,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    color: const Color(0xFF1E3A5F).withOpacity(.08),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
-                    Icons.fingerprint,
-                    size: 36,
-                    color: Theme.of(
-                      context,
-                    ).primaryColor, // <-- Theme ka color call kiya
+                    Icons.lock_reset_rounded,
+                    size: 42,
+                    color: const Color(0xFF1E3A5F),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -94,6 +75,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     height: 1.3,
                   ),
                 ),
+                const SizedBox(height: 10),
+
+                Text(
+                  "Enter your registered email address.\nWe'll send you a password reset link.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600, height: 1.5),
+                ),
                 const SizedBox(height: 40),
 
                 // 3. Email Custom Input Field
@@ -106,18 +94,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(fontSize: 15),
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your email',
-                      hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
-                      prefixIcon: Icon(
-                        Icons.mail_outline,
-                        color: Colors.black38,
-                        size: 20,
+                    decoration: InputDecoration(
+                      labelText: "Email Address",
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFF1E3A5F),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                        borderSide: BorderSide(
+                          color: Color(0xFF1E3A5F),
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -140,6 +137,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E3A5F),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+
                     onPressed: () async {
                       // 1. Controller se input email uthao aur spaces trim karo
                       String enteredEmail = _emailController.text.trim();
@@ -213,27 +219,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 24),
 
                 // 5. Back to Login Text Button
-                TextButton(
+                TextButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.arrow_back,
-                        size: 16,
-                        color: Colors.black,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'back to login',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF1E3A5F)),
+                  label: const Text(
+                    "Back to Login",
+                    style: TextStyle(
+                      color: Color(0xFF1E3A5F),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
